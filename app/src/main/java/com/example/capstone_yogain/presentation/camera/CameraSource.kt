@@ -40,7 +40,6 @@ class CameraSource(
         private const val PREVIEW_WIDTH = 640
         private const val PREVIEW_HEIGHT = 480
 
-        /** Threshold for confidence score. */
         private const val MIN_CONFIDENCE = .2f
         private const val TAG = "Camera Source"
     }
@@ -63,19 +62,13 @@ class CameraSource(
         context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
 
-    /** Readers used as buffers for camera still shots */
     private var imageReader: ImageReader? = null
 
-    /** The [CameraDevice] that will be opened in this fragment */
     private var camera: CameraDevice? = null
-
-    /** Internal reference to the ongoing [CameraCaptureSession] configured with our parameters */
     private var session: CameraCaptureSession? = null
 
-    /** [HandlerThread] where all buffer reading operations run */
     private var imageReaderThread: HandlerThread? = null
 
-    /** [Handler] corresponding to [imageReaderThread] */
     private var imageReaderHandler: Handler? = null
     private var cameraId: String = ""
 

@@ -1,24 +1,10 @@
 package com.example.capstone_yogain.presentation.camera
 
-import android.content.pm.PackageManager
-import android.os.Bundle
-import android.util.Log
-import android.view.OrientationEventListener
-import android.view.Surface
-import android.view.WindowInsets
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
 import android.Manifest
 import android.app.AlertDialog
 import android.app.Dialog
-import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Matrix
+import android.content.pm.PackageManager
+import android.os.Bundle
 import android.os.Process
 import android.view.SurfaceView
 import android.view.View
@@ -28,21 +14,20 @@ import android.widget.ArrayAdapter
 import android.widget.CompoundButton
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.example.capstone_yogain.R
-import com.example.capstone_yogain.data.data.Device
-import com.example.capstone_yogain.databinding.ActivityCameraBinding
 import com.example.capstone_yogain.ml.ModelType
 import com.example.capstone_yogain.ml.MoveNet
 import com.example.capstone_yogain.ml.MoveNetMultiPose
 import com.example.capstone_yogain.ml.PoseClassifier
 import com.example.capstone_yogain.ml.TrackerType
 import com.example.capstone_yogain.ml.Type
-import com.example.capstone_yogain.utils.showToast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -54,11 +39,9 @@ class CameraActivity : AppCompatActivity() {
     }
     private lateinit var surfaceView: SurfaceView
     private var modelPos = 1
-    private var device = Device.CPU
 
     private lateinit var tvScore: TextView
     private lateinit var tvFPS: TextView
-    private lateinit var spnDevice: Spinner
     private lateinit var spnModel: Spinner
     private lateinit var spnTracker: Spinner
     private lateinit var vTrackerOption: View
@@ -95,15 +78,6 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private var changeDeviceListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            changeDevice(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-            // do nothing
-        }
-    }
 
     private var changeTrackerListener = object : AdapterView.OnItemSelectedListener {
         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -130,7 +104,6 @@ class CameraActivity : AppCompatActivity() {
         tvScore = findViewById(R.id.tvScore)
         tvFPS = findViewById(R.id.tvFps)
         spnModel = findViewById(R.id.spnModel)
-        spnDevice = findViewById(R.id.spnDevice)
         spnTracker = findViewById(R.id.spnTracker)
         vTrackerOption = findViewById(R.id.vTrackerOption)
         surfaceView = findViewById(R.id.surfaceView)
@@ -243,9 +216,6 @@ class CameraActivity : AppCompatActivity() {
             R.array.tfe_pe_device_name, android.R.layout.simple_spinner_item
         ).also { adaper ->
             adaper.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-
-            spnDevice.adapter = adaper
-            spnDevice.onItemSelectedListener = changeDeviceListener
         }
 
         ArrayAdapter.createFromResource(
@@ -266,19 +236,6 @@ class CameraActivity : AppCompatActivity() {
         createPoseEstimator()
     }
 
-    // Change device (accelerator) type when app is running
-    private fun changeDevice(position: Int) {
-        val targetDevice = when (position) {
-            0 -> Device.CPU
-            1 -> Device.GPU
-            else -> Device.NNAPI
-        }
-        if (device == targetDevice) return
-        device = targetDevice
-        createPoseEstimator()
-    }
-
-    // Change tracker for Movenet MultiPose model
     private fun changeTracker(position: Int) {
         cameraSource?.setTracker(
             when (position) {
@@ -298,27 +255,23 @@ class CameraActivity : AppCompatActivity() {
                 showPoseClassifier(true)
                 showDetectionScore(true)
                 showTracker(false)
-                MoveNet.create(this, device, ModelType.Lightning)
+                MoveNet.create(this, ModelType.Lightning)
             }
             1 -> {
                 // MoveNet Thunder (SinglePose)
                 showPoseClassifier(true)
                 showDetectionScore(true)
                 showTracker(false)
-                MoveNet.create(this, device, ModelType.Thunder)
+                MoveNet.create(this, ModelType.Thunder)
             }
             2 -> {
                 // MoveNet (Lightning) MultiPose
                 showPoseClassifier(false)
                 showDetectionScore(false)
                 // Movenet MultiPose Dynamic does not support GPUDelegate
-                if (device == Device.GPU) {
-                    showToast(getString(R.string.tfe_pe_gpu_error))
-                }
                 showTracker(true)
                 MoveNetMultiPose.create(
                     this,
-                    device,
                     Type.Dynamic
                 )
             }

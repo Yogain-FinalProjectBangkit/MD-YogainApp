@@ -72,26 +72,10 @@ class MoveNetMultiPose(
         // allow specifying model type.
         fun create(
             context: Context,
-            device: Device,
             type: Type,
         ): MoveNetMultiPose {
             val options = Interpreter.Options()
             var gpuDelegate: GpuDelegate? = null
-            when (device) {
-                Device.CPU -> {
-                    options.setNumThreads(CPU_NUM_THREADS)
-                }
-                Device.GPU -> {
-                    // only fixed model support Gpu delegate option.
-                    if (type == Type.Fixed) {
-                        gpuDelegate = GpuDelegate()
-                        options.addDelegate(gpuDelegate)
-                    }
-                }
-                else -> {
-                    // nothing to do
-                }
-            }
             return MoveNetMultiPose(
                 Interpreter(
                     FileUtil.loadMappedFile(

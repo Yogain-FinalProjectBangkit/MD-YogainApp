@@ -59,19 +59,11 @@ class MoveNet(private val interpreter: Interpreter, private var gpuDelegate: Gpu
         private const val THUNDER_FILENAME = "movenet_thunder.tflite"
 
         // allow specifying model type.
-        fun create(context: Context, device: Device, modelType: ModelType): MoveNet {
+        fun create(context: Context, modelType: ModelType): MoveNet {
             val options = Interpreter.Options()
             var gpuDelegate: GpuDelegate? = null
             options.setNumThreads(CPU_NUM_THREADS)
-            when (device) {
-                Device.CPU -> {
-                }
-                Device.GPU -> {
-                    gpuDelegate = GpuDelegate()
-                    options.addDelegate(gpuDelegate)
-                }
-                Device.NNAPI -> options.setUseNNAPI(true)
-            }
+
             return MoveNet(
                 Interpreter(
                     FileUtil.loadMappedFile(
@@ -85,8 +77,8 @@ class MoveNet(private val interpreter: Interpreter, private var gpuDelegate: Gpu
         }
 
         // default to lightning.
-        fun create(context: Context, device: Device): MoveNet =
-            create(context, device, ModelType.Lightning)
+        fun create(context: Context): MoveNet =
+            create(context, ModelType.Lightning)
     }
 
     private var cropRegion: RectF? = null

@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:contentDescription="@null"
-        android:src="@drawable/icn_chevron_up" />
+        android:src="@drawable/arrow" />
 
     <TextView
         android:id="@+id/tvFps"
@@ -34,23 +34,6 @@
         android:id="@+id/tvScore"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/tfe_pe_tv_device" />
-
-        <Spinner
-            android:id="@+id/spnDevice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:ignore="TouchTargetSizeCheck" />
-    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
