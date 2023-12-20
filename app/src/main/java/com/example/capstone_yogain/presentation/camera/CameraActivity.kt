@@ -14,6 +14,8 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import android.Manifest
+import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Matrix
@@ -29,6 +31,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import com.example.capstone_yogain.R
 import com.example.capstone_yogain.data.data.Device
@@ -46,10 +49,13 @@ import kotlinx.coroutines.launch
 
 class CameraActivity : AppCompatActivity() {
 
+    companion object {
+        private const val FRAGMENT_DIALOG = "dialog"
+    }
+    private lateinit var surfaceView: SurfaceView
+    private var modelPos = 1
     private var device = Device.CPU
-    private var isClassifyPose = false
-    private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-    private var imageCapture: ImageCapture? = null
+
     private lateinit var tvScore: TextView
     private lateinit var tvFPS: TextView
     private lateinit var spnDevice: Spinner
@@ -62,20 +68,50 @@ class CameraActivity : AppCompatActivity() {
     private lateinit var swClassification: SwitchCompat
     private lateinit var vClassificationOption: View
     private var cameraSource: CameraSource? = null
-
-    private var _binding: ActivityCameraBinding? = null
-    private val binding get() = _binding
-    private var modelPos = 1
-
+    private var isClassifyPose = false
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                openCamera()
+            } else {
+                ErrorDialog.newInstance(getString(R.string.tfe_pe_request_permission))
+                    .show(supportFragmentManager, FRAGMENT_DIALOG)
+            }
+        }
     private var changeModelListener = object : AdapterView.OnItemSelectedListener {
+        override fun onNothingSelected(parent: AdapterView<*>?) {
+            // do nothing
+        }
+
+        override fun onItemSelected(
+            parent: AdapterView<*>?,
+            view: View?,
+            position: Int,
+            id: Long
+        ) {
+            changeModel(position)
+        }
+    }
+
+    private var changeDeviceListener = object : AdapterView.OnItemSelectedListener {
         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            modelPos = position
-            createPoseEstimator()
-            startCamera() // Atau pemanggilan metode lain untuk memulai kamera ulang dengan model baru
+            changeDevice(position)
         }
 
         override fun onNothingSelected(parent: AdapterView<*>?) {
-            // Tidak ada aksi yang perlu dilakukan ketika tidak ada yang dipilih
+            // do nothing
+        }
+    }
+
+    private var changeTrackerListener = object : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            changeTracker(position)
+        }
+
+        override fun onNothingSelected(parent: AdapterView<*>?) {
+            // do nothing
         }
     }
 
@@ -86,13 +122,10 @@ class CameraActivity : AppCompatActivity() {
             isPoseClassifier()
         }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        _binding = ActivityCameraBinding.inflate(layoutInflater)
-        setContentView(binding?.root)
-
-        supportActionBar?.hide()
+        setContentView(R.layout.activity_camera)
+        // keep screen on while app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         tvScore = findViewById(R.id.tvScore)
         tvFPS = findViewById(R.id.tvFps)
@@ -100,73 +133,98 @@ class CameraActivity : AppCompatActivity() {
         spnDevice = findViewById(R.id.spnDevice)
         spnTracker = findViewById(R.id.spnTracker)
         vTrackerOption = findViewById(R.id.vTrackerOption)
+        surfaceView = findViewById(R.id.surfaceView)
         tvClassificationValue1 = findViewById(R.id.tvClassificationValue1)
         tvClassificationValue2 = findViewById(R.id.tvClassificationValue2)
         tvClassificationValue3 = findViewById(R.id.tvClassificationValue3)
         swClassification = findViewById(R.id.swPoseClassification)
         vClassificationOption = findViewById(R.id.vClassificationOption)
-
-        binding?.switchCamera?.setOnClickListener {
-            cameraSelector =
-                if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) CameraSelector.DEFAULT_FRONT_CAMERA
-                else CameraSelector.DEFAULT_BACK_CAMERA
-
-            startCamera()
-        }
-
         initSpinner()
         spnModel.setSelection(modelPos)
-
+        swClassification.setOnCheckedChangeListener(setClassificationListener)
+        if (!isCameraPermissionGranted()) {
+            requestPermission()
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        orientationEventListener.enable()
+        openCamera()
     }
 
-    override fun onStop() {
-        super.onStop()
-        orientationEventListener.disable()
-    }
-
-    public override fun onResume() {
+    override fun onResume() {
+        cameraSource?.resume()
         super.onResume()
-        hideSystemUI()
-        startCamera()
     }
 
-    private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+    override fun onPause() {
+        cameraSource?.close()
+        cameraSource = null
+        super.onPause()
+    }
 
-        cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(binding?.viewFinder?.surfaceProvider)
+    // check if permission is granted or not.
+    private fun isCameraPermissionGranted(): Boolean {
+        return checkPermission(
+            Manifest.permission.CAMERA,
+            Process.myPid(),
+            Process.myUid()
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    // open camera
+    private fun openCamera() {
+        if (isCameraPermissionGranted()) {
+            if (cameraSource == null) {
+                cameraSource =
+                    CameraSource(surfaceView, object : CameraSource.CameraSourceListener {
+                        override fun onFPSListener(fps: Int) {
+                            tvFPS.text = getString(R.string.tfe_pe_tv_fps, fps)
+                        }
+
+                        override fun onDetectedInfo(
+                            personScore: Float?,
+                            poseLabels: List<Pair<String, Float>>?
+                        ) {
+                            tvScore.text = getString(R.string.tfe_pe_tv_score, personScore ?: 0f)
+                            poseLabels?.sortedByDescending { it.second }?.let {
+                                tvClassificationValue1.text = getString(
+                                    R.string.tfe_pe_tv_classification_value,
+                                    convertPoseLabels(if (it.isNotEmpty()) it[0] else null)
+                                )
+                                tvClassificationValue2.text = getString(
+                                    R.string.tfe_pe_tv_classification_value,
+                                    convertPoseLabels(if (it.size >= 2) it[1] else null)
+                                )
+                                tvClassificationValue3.text = getString(
+                                    R.string.tfe_pe_tv_classification_value,
+                                    convertPoseLabels(if (it.size >= 3) it[2] else null)
+                                )
+                            }
+                        }
+
+                    }).apply {
+                        prepareCamera()
+                    }
+                isPoseClassifier()
+                lifecycleScope.launch(Dispatchers.Main) {
+                    cameraSource?.initCamera()
                 }
-
-            imageCapture = ImageCapture.Builder().build()
-
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    this,
-                    cameraSelector,
-                    preview,
-                    imageCapture
-                )
-            } catch (exc: Exception) {
-                Toast.makeText(
-                    this@CameraActivity,
-                    "Gagal memunculkan kamera.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                Log.e(TAG, "startCamera: ${exc.message}")
             }
-        }, ContextCompat.getMainExecutor(this))
+            createPoseEstimator()
+        }
     }
 
+    private fun convertPoseLabels(pair: Pair<String, Float>?): String {
+        if (pair == null) return "empty"
+        return "${pair.first} (${String.format("%.2f", pair.second)})"
+    }
+
+    private fun isPoseClassifier() {
+        cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
+    }
+
+    // Initialize spinners to let user select model/accelerator/tracker.
     private fun initSpinner() {
         ArrayAdapter.createFromResource(
             this,
@@ -201,35 +259,14 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-
-    private val orientationEventListener by lazy {
-        object : OrientationEventListener(this) {
-            override fun onOrientationChanged(orientation: Int) {
-                if (orientation == ORIENTATION_UNKNOWN) {
-                    return
-                }
-                val rotation = when (orientation) {
-                    in 45 until 135 -> Surface.ROTATION_270
-                    in 135 until 225 -> Surface.ROTATION_180
-                    in 225 until 315 -> Surface.ROTATION_90
-                    else -> Surface.ROTATION_0
-                }
-                imageCapture?.targetRotation = rotation
-            }
-        }
+    // Change model when app is running
+    private fun changeModel(position: Int) {
+        if (modelPos == position) return
+        modelPos = position
+        createPoseEstimator()
     }
 
-
-    private var changeTrackerListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            changeTracker(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-            // do nothing
-        }
-    }
-
+    // Change device (accelerator) type when app is running
     private fun changeDevice(position: Int) {
         val targetDevice = when (position) {
             0 -> Device.CPU
@@ -241,6 +278,7 @@ class CameraActivity : AppCompatActivity() {
         createPoseEstimator()
     }
 
+    // Change tracker for Movenet MultiPose model
     private fun changeTracker(position: Int) {
         cameraSource?.setTracker(
             when (position) {
@@ -249,47 +287,6 @@ class CameraActivity : AppCompatActivity() {
                 else -> TrackerType.OFF
             }
         )
-    }
-
-    private var changeDeviceListener = object : AdapterView.OnItemSelectedListener {
-        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-            changeDevice(position)
-        }
-
-        override fun onNothingSelected(parent: AdapterView<*>?) {
-
-        }
-    }
-
-    private fun showPoseClassifier(isVisible: Boolean) {
-        vClassificationOption.visibility = if (isVisible) View.VISIBLE else View.GONE
-        if (!isVisible) {
-            swClassification.isChecked = false
-        }
-    }
-
-    private fun showDetectionScore(isVisible: Boolean) {
-        tvScore.visibility = if (isVisible) View.VISIBLE else View.GONE
-    }
-
-    // Show/hide classification result.
-    private fun showClassificationResult(isVisible: Boolean) {
-        val visibility = if (isVisible) View.VISIBLE else View.GONE
-        tvClassificationValue1.visibility = visibility
-        tvClassificationValue2.visibility = visibility
-        tvClassificationValue3.visibility = visibility
-    }
-
-    private fun showTracker(isVisible: Boolean) {
-        if (isVisible) {
-            // Show tracker options and enable Bounding Box tracker.
-            vTrackerOption.visibility = View.VISIBLE
-            spnTracker.setSelection(1)
-        } else {
-            // Set tracker type to off and hide tracker option.
-            vTrackerOption.visibility = View.GONE
-            spnTracker.setSelection(0)
-        }
     }
 
     private fun createPoseEstimator() {
@@ -303,7 +300,6 @@ class CameraActivity : AppCompatActivity() {
                 showTracker(false)
                 MoveNet.create(this, device, ModelType.Lightning)
             }
-
             1 -> {
                 // MoveNet Thunder (SinglePose)
                 showPoseClassifier(true)
@@ -311,14 +307,13 @@ class CameraActivity : AppCompatActivity() {
                 showTracker(false)
                 MoveNet.create(this, device, ModelType.Thunder)
             }
-
             2 -> {
                 // MoveNet (Lightning) MultiPose
                 showPoseClassifier(false)
                 showDetectionScore(false)
                 // Movenet MultiPose Dynamic does not support GPUDelegate
                 if (device == Device.GPU) {
-                    showToast(this, R.string.tfe_pe_gpu_error)
+                    showToast(getString(R.string.tfe_pe_gpu_error))
                 }
                 showTracker(true)
                 MoveNetMultiPose.create(
@@ -327,7 +322,6 @@ class CameraActivity : AppCompatActivity() {
                     Type.Dynamic
                 )
             }
-
             else -> {
                 null
             }
@@ -337,20 +331,85 @@ class CameraActivity : AppCompatActivity() {
         }
     }
 
-    private fun hideSystemUI() {
-        window.insetsController?.hide(WindowInsets.Type.statusBars())
-        supportActionBar?.hide()
+    // Show/hide the pose classification option.
+    private fun showPoseClassifier(isVisible: Boolean) {
+        vClassificationOption.visibility = if (isVisible) View.VISIBLE else View.GONE
+        if (!isVisible) {
+            swClassification.isChecked = false
+        }
     }
 
-    private fun isPoseClassifier() {
-        cameraSource?.setClassifier(if (isClassifyPose) PoseClassifier.create(this) else null)
+    // Show/hide the detection score.
+    private fun showDetectionScore(isVisible: Boolean) {
+        tvScore.visibility = if (isVisible) View.VISIBLE else View.GONE
     }
 
-
-    companion object {
-        private const val TAG = "CameraActivity"
-        const val EXTRA_CAMERAX_IMAGE = "CameraX Image"
-        const val CAMERAX_RESULT = 200
+    // Show/hide classification result.
+    private fun showClassificationResult(isVisible: Boolean) {
+        val visibility = if (isVisible) View.VISIBLE else View.GONE
+        tvClassificationValue1.visibility = visibility
+        tvClassificationValue2.visibility = visibility
+        tvClassificationValue3.visibility = visibility
     }
 
+    // Show/hide the tracking options.
+    private fun showTracker(isVisible: Boolean) {
+        if (isVisible) {
+            // Show tracker options and enable Bounding Box tracker.
+            vTrackerOption.visibility = View.VISIBLE
+            spnTracker.setSelection(1)
+        } else {
+            // Set tracker type to off and hide tracker option.
+            vTrackerOption.visibility = View.GONE
+            spnTracker.setSelection(0)
+        }
+    }
+
+    private fun requestPermission() {
+        when (PackageManager.PERMISSION_GRANTED) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) -> {
+                // You can use the API that requires the permission.
+                openCamera()
+            }
+            else -> {
+                // You can directly ask for the permission.
+                // The registered ActivityResultCallback gets the result of this request.
+                requestPermissionLauncher.launch(
+                    Manifest.permission.CAMERA
+                )
+            }
+        }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * Shows an error message dialog.
+     */
+    class ErrorDialog : DialogFragment() {
+
+        override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
+            AlertDialog.Builder(activity)
+                .setMessage(requireArguments().getString(ARG_MESSAGE))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    // do nothing
+                }
+                .create()
+
+        companion object {
+
+            @JvmStatic
+            private val ARG_MESSAGE = "message"
+
+            @JvmStatic
+            fun newInstance(message: String): ErrorDialog = ErrorDialog().apply {
+                arguments = Bundle().apply { putString(ARG_MESSAGE, message) }
+            }
+        }
+    }
 }
