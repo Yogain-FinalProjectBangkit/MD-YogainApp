@@ -3,8 +3,9 @@ package com.example.capstone_yogain.presentation.on_boarding
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatDelegate
 import com.example.capstone_yogain.databinding.ActivityOnBoardingBinding
-import com.example.capstone_yogain.presentation.register.LoginActivity
+import com.example.capstone_yogain.presentation.login_register.LoginActivity
 
 class OnBoardingActivity : AppCompatActivity() {
 
@@ -16,7 +17,7 @@ class OnBoardingActivity : AppCompatActivity() {
         _binding = ActivityOnBoardingBinding.inflate(layoutInflater)
         setContentView(binding?.root)
 
-
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         binding?.startWithUs?.setOnClickListener {
             val toLogin = Intent(this@OnBoardingActivity, LoginActivity::class.java)

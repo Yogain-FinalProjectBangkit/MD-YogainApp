@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.capstone_yogain"
-        minSdk = 30
+        minSdk = 27
 
         //noinspection OldTargetApi
         targetSdk = 33

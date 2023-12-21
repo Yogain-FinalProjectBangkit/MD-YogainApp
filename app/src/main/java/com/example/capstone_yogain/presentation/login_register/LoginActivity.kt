@@ -1,4 +1,4 @@
-package com.example.capstone_yogain.presentation.register
+package com.example.capstone_yogain.presentation.login_register
 
 import android.app.Activity
 import android.content.Context
@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatDelegate
 import com.example.capstone_yogain.R
 import com.example.capstone_yogain.databinding.ActivityLoginBinding
 import com.example.capstone_yogain.presentation.main.MainActivity
@@ -37,6 +38,7 @@ class LoginActivity : AppCompatActivity() {
         _binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding?.root)
 
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         supportActionBar?.hide()
 
         val gso = GoogleSignInOptions

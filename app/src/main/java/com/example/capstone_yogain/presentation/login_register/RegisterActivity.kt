@@ -1,4 +1,4 @@
-package com.example.capstone_yogain.presentation.register
+package com.example.capstone_yogain.presentation.login_register
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.example.capstone_yogain.R
 import com.example.capstone_yogain.data.model.UserModel
 import com.example.capstone_yogain.databinding.ActivityRegisterBinding
@@ -21,6 +22,7 @@ class RegisterActivity : AppCompatActivity() {
         _binding = ActivityRegisterBinding.inflate(layoutInflater)
         setContentView(binding?.root)
 
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         supportActionBar?.hide()
 
         showLoading(false)

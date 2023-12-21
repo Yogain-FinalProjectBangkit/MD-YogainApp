@@ -1,4 +1,4 @@
-package com.example.capstone_yogain.presentation.register
+package com.example.capstone_yogain.presentation.login_register
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

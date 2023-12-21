@@ -28,10 +28,10 @@
             android:name=".presentation.camera.CameraActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.register.RegisterActivity"
+            android:name=".presentation.login_register.RegisterActivity"
             android:exported="false" />
         <activity
-            android:name=".presentation.register.LoginActivity"
+            android:name=".presentation.login_register.LoginActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.detail.DetailActivity"

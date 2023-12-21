@@ -38,7 +38,7 @@
     </fragment>
     <activity
         android:id="@+id/loginActivity"
-        android:name="com.example.capstone_yogain.presentation.register.LoginActivity"
+        android:name="com.example.capstone_yogain.presentation.login_register.LoginActivity"
         android:label="activity_login"
         tools:layout="@layout/activity_login" />
     <fragment

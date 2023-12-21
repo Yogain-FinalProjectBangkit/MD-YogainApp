@@ -6,10 +6,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.appcompat.app.AppCompatDelegate
 import com.example.capstone_yogain.databinding.ActivitySplashScreenBinding
 import com.example.capstone_yogain.presentation.main.MainActivity
 import com.example.capstone_yogain.presentation.on_boarding.OnBoardingActivity
-import com.example.capstone_yogain.presentation.register.LoginActivity
 import com.example.capstone_yogain.utils.ConstVal.duration
 import com.google.firebase.auth.FirebaseAuth
 
@@ -23,6 +23,8 @@ class SplashScreen : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         _binding = ActivitySplashScreenBinding.inflate(layoutInflater)
         setContentView(binding?.root)
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         Handler(Looper.getMainLooper()).postDelayed({
             checkAuthentication()

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center"
-    tools:context=".presentation.register.RegisterActivity">
+    tools:context=".presentation.login_register.RegisterActivity">
 
     <LinearLayout
         android:id="@+id/layout_logo"
