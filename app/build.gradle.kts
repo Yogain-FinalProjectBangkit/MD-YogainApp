@@ -9,12 +9,10 @@ plugins {
 android {
     namespace = "com.example.capstone_yogain"
     compileSdk = 34
-
     defaultConfig {
         applicationId = "com.example.capstone_yogain"
-        minSdk = 27
+        minSdk = 21
 
-        //noinspection OldTargetApi
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
