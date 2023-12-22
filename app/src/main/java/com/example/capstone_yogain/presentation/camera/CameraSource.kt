@@ -87,10 +87,12 @@ class CameraSource(
                             Bitmap.Config.ARGB_8888
                         )
                 }
+
                 yuvConverter.yuvToRgb(image, imageBitmap)
                 // Create rotated version for portrait display
                 val rotateMatrix = Matrix()
-                rotateMatrix.postRotate(90f)
+                rotateMatrix.postRotate(270f)
+                rotateMatrix.preScale(1f, -1f)
 
                 val rotatedBitmap = Bitmap.createBitmap(
                     imageBitmap, 0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT,

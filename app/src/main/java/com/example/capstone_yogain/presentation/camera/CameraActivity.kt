@@ -252,39 +252,45 @@ class CameraActivity : AppCompatActivity() {
     private fun createPoseEstimator() {
         // For MoveNet MultiPose, hide score and disable pose classifier as the model returns
         // multiple Person instances.
-        val poseDetector = when (modelPos) {
-            0 -> {
-                // MoveNet Lightning (SinglePose)
-                showPoseClassifier(true)
-                showDetectionScore(true)
-                showTracker(false)
-                MoveNet.create(this, ModelType.Lightning)
-            }
-            1 -> {
-                // MoveNet Thunder (SinglePose)
-                showPoseClassifier(true)
-                showDetectionScore(true)
-                showTracker(false)
-                MoveNet.create(this, ModelType.Thunder)
-            }
-            2 -> {
-                // MoveNet (Lightning) MultiPose
-                showPoseClassifier(false)
-                showDetectionScore(false)
-                // Movenet MultiPose Dynamic does not support GPUDelegate
-                showTracker(true)
-                MoveNetMultiPose.create(
-                    this,
-                    Type.Dynamic
-                )
-            }
-            else -> {
-                null
-            }
-        }
-        poseDetector?.let { detector ->
-            cameraSource?.setDetector(detector)
-        }
+        showPoseClassifier(true)
+        showDetectionScore(true)
+        showTracker(false)
+        val poseDetector = MoveNet.create(this, ModelType.Lightning)
+//        val poseDetector = when (modelPos) {
+//            0 -> {
+//                // MoveNet Lightning (SinglePose)
+//                showPoseClassifier(true)
+//                showDetectionScore(true)
+//                showTracker(false)
+//                MoveNet.create(this, ModelType.Lightning)
+//            }
+//            1 -> {
+//                // MoveNet Thunder (SinglePose)
+//                showPoseClassifier(true)
+//                showDetectionScore(true)
+//                showTracker(false)
+//                MoveNet.create(this, ModelType.Thunder)
+//            }
+//            2 -> {
+//                // MoveNet (Lightning) MultiPose
+//                showPoseClassifier(false)
+//                showDetectionScore(false)
+//                // Movenet MultiPose Dynamic does not support GPUDelegate
+//                showTracker(true)
+//                MoveNetMultiPose.create(
+//                    this,
+//                    Type.Dynamic
+//                )
+//            }
+//            else -> {
+//                null
+//            }
+//        }
+
+        cameraSource?.setDetector(poseDetector)
+//        poseDetector?.let { detector ->
+//            cameraSource?.setDetector(detector)
+//        }
     }
 
     // Show/hide the pose classification option.
